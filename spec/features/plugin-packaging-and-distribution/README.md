@@ -23,7 +23,7 @@ The Idea's second must-be-true assumption is that users will tolerate an externa
 
 #### REQ: plugin-layout
 
-The repo MUST follow the Claude Code plugin layout: `.claude-plugin/plugin.json` (name `cover100`, semver version, description), `skills/cover100/SKILL.md` (the `/cover100` skill), `workflows/cover100.js` (the orchestrator) plus per-profile scripts, and `profiles/<lang>/` directories per the language-profile contract. The skill MUST reference the workflow by its in-plugin path so the installed plugin is self-contained.
+The repo MUST follow the Claude Code plugin layout: `.claude-plugin/plugin.json` (name `cover100`, semver version, description), `skills/cover100/SKILL.md` (the `/cover100` skill), `workflows/cover100.js` (the orchestrator) plus per-profile scripts, `profiles/<lang>/` directories per the language-profile contract, and `assets/` for fixed files installed verbatim into user repos (e.g. the `.cover100/README.md` template). The skill MUST reference the workflow by its in-plugin path so the installed plugin is self-contained.
 
 #### REQ: version-pinning
 
