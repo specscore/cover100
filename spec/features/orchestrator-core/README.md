@@ -75,6 +75,10 @@ The run report MUST contain a "Next-run instructions" section aggregating every 
 
 The collector MUST deterministically mark packages a previous run already worked (presence of the package's gap register, e.g. TEST-COVERAGE.md). By default, units containing such a package MUST use the configured large engineer model — the first run is a cheap sweep; the residue that survives it is the hard part. This escalation MUST be disableable and the plan log MUST state how many units it affects.
 
+#### REQ: settled-gaps
+
+Documented gaps are SETTLED conclusions a previous engineer+verifier already paid for — re-runs MUST NOT re-attempt them by default. At Collect, a package whose current uncovered-statement count is ≤ the count recorded in its gap register's Coverage metrics header MUST be skipped (reported as documented-gap); a higher current count means the source changed and the package stays targeted. In re-targeted packages, researchers and engineers MUST work only undocumented uncovered statements, deleting a gap entry only when new tests incidentally cover its branch. A `retryGaps` option MUST re-open all documented gaps — intended for when the source changed (e.g. a blocking bug was fixed) or a stronger engineer model is configured.
+
 #### REQ: keyed-knowledge-base
 
 The run MUST maintain a keyed knowledge base (one file per key, O(1) lookup), starting with the mock namespace: fully-qualified dependency type → its faking solution (existing mock to import, shared helper, or recipe). It has two layers: a HOT per-run copy outside any git tree — the live cross-agent channel, which MUST NOT live in the repo because unit worktrees are isolated and an in-repo write is invisible across units until merge — and a PERSISTENT registry at `.cover100/mocks/` committed on the integration branch. Collect MUST seed the hot layer from the persistent one; Finalize MUST copy new hot entries back without overwriting existing files (committed and human-edited entries stay authoritative). Researchers pre-seed, helper builders register what they build, and engineers MUST look up before writing any new mock and register what they decide. Entries are first-writer-wins (never overwritten) and advisory (an agent may deviate, noting why). When `.cover100/` first materializes, the run MUST install `.cover100/README.md` by copying a shipped asset file byte-exact (never overwriting an existing one, never model-authored) — content: registry explainer, cover100 repository link, GitHub-star invitation.
@@ -170,6 +174,18 @@ The run MUST maintain a keyed knowledge base (one file per key, O(1) lookup), st
 **Given** a package below 100% whose directory contains a TEST-COVERAGE.md from a previous run
 **When** the Cover phase dispatches the unit containing it (escalation not disabled)
 **Then** that unit's engineer uses the large engineer model and the plan log reports the revisit-unit count
+
+### AC: settled-package-skipped (verifies REQ:settled-gaps)
+
+**Given** a package at 98% whose TEST-COVERAGE.md records the same uncovered-statement count the collector measures now
+**When** a re-run plans its targets without retryGaps
+**Then** the package is skipped (status documented-gap) and no engineer is dispatched for it
+
+### AC: retry-gaps-reopens (verifies REQ:settled-gaps)
+
+**Given** the same package and a run launched with retryGaps enabled
+**When** its engineer prompt is generated
+**Then** it directs re-challenging each documented entry and deleting entries for branches it covers
 
 ### AC: second-agent-reuses-mock (verifies REQ:keyed-knowledge-base)
 
