@@ -55,7 +55,7 @@ Merges into the integration branch MUST be serialized (one at a time) and fire-a
 
 #### REQ: no-work-lost
 
-The run MUST be abortable at any point without losing committed work: engineers commit each package as soon as it is green (never batching to the end); units map to content-hash-named branches recorded in a per-stamp manifest so re-runs assign the same packages to the same existing branches (rebasing them onto the integration branch on adoption); the Salvage phase recovers committed-but-unintegrated branches build+test-gated; resuming with the same stamp re-collects on the existing integration branch and skips completed packages.
+The run MUST be abortable at any point without losing committed work: engineers commit each package as soon as it is green (never batching to the end); units map to content-hash-named branches recorded in a per-stamp manifest so re-runs assign the same packages to the same existing branches (rebasing them onto the integration branch on adoption); the Salvage phase recovers committed-but-unintegrated branches build+test-gated; resuming with the same stamp re-collects on the existing integration branch and skips completed packages. A unit that dies on an agent error (disconnect, killed agent — no verdict produced) MUST be PARKED, not discarded: WIP-commit its worktree, keep its branch for the next run's Salvage. Only work an actual verifier verdict judged unsafe may be deleted.
 
 #### REQ: free-byproducts
 
@@ -118,6 +118,12 @@ The run MUST maintain a keyed knowledge base (one file per key, O(1) lookup), st
 **Given** a run aborted while 3 units have committed work (1 integrated, 2 on unit branches)
 **When** the same stamp is re-run
 **Then** the integrated unit's packages are skipped by re-collection, the 2 leftover branches are salvaged or re-adopted, and no committed test is rewritten from scratch
+
+### AC: no-verdict-parks-not-deletes (verifies REQ:no-work-lost)
+
+**Given** a unit whose engineer committed green work and whose verifier died on a network disconnect (no verdict)
+**When** the integration decision runs
+**Then** the unit's branch survives with a WIP commit and the next same-stamp run's Salvage merges it build+test-gated
 
 ### AC: integration-syncs-index (verifies REQ:serialized-integration)
 
