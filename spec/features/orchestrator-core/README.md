@@ -29,6 +29,10 @@ A run MUST execute these phases in order: Salvage (recover aborted-run leftovers
 
 Research-batch and engineer-unit statement budgets MUST scale with repo size (defaults: uncovered/32 batches and uncovered/64 units, with floors), and the run MUST log a projected agent count up front and warn when it approaches the platform's lifetime agent cap. Explicit budget arguments override the defaults.
 
+#### REQ: operator-visibility
+
+Long-running agent roles (researcher, engineer, verifier, finalizer) MUST append one-line milestones to a per-run progress log outside the repo (researcher: per package analyzed; engineer: per package green with coverage %; verifier: verdict; finalizer: per gate green / per fix applied), giving operators a live `tail -f` feed for work the progress UI cannot see inside a dispatched agent. The Finalize phase MUST run as two sequential agents (whole-module green loop; then report-only byproducts) so the phase shows progress in the UI instead of one opaque multi-hour spinner.
+
 ### Cover loop
 
 #### REQ: worker-pool
@@ -76,6 +80,12 @@ The collector MUST deterministically mark packages a previous run already worked
 The run MUST maintain a keyed knowledge base (one file per key, O(1) lookup), starting with the mock namespace: fully-qualified dependency type → its faking solution (existing mock to import, shared helper, or recipe). It has two layers: a HOT per-run copy outside any git tree — the live cross-agent channel, which MUST NOT live in the repo because unit worktrees are isolated and an in-repo write is invisible across units until merge — and a PERSISTENT registry at `.cover100/mocks/` committed on the integration branch. Collect MUST seed the hot layer from the persistent one; Finalize MUST copy new hot entries back without overwriting existing files (committed and human-edited entries stay authoritative). Researchers pre-seed, helper builders register what they build, and engineers MUST look up before writing any new mock and register what they decide. Entries are first-writer-wins (never overwritten) and advisory (an agent may deviate, noting why). When `.cover100/` first materializes, the run MUST install `.cover100/README.md` by copying a shipped asset file byte-exact (never overwriting an existing one, never model-authored) — content: registry explainer, cover100 repository link, GitHub-star invitation.
 
 ## Acceptance Criteria
+
+### AC: progress-log-feeds (verifies REQ:operator-visibility)
+
+**Given** a run with an engineer mid-unit and the finalizer not yet started
+**When** an operator tails the run's progress log
+**Then** each package the engineer completed so far appears as a timestamped line with its coverage %
 
 ### AC: verify-starts-immediately (verifies REQ:worker-pool)
 
